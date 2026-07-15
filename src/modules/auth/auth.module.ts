@@ -1,11 +1,21 @@
 import { Module } from '@nestjs/common';
 
-/**
- * Auth module scaffold — Task 1: register/login, bcrypt cost 12, JWT.
- * Folder shape required: controllers/, services/, dto/, interfaces/.
- */
+import { DatabaseModule } from '../../database/database.module';
+import { AuthController } from './controllers/auth.controller';
+import { AuthLoginService } from './services/auth-login.service';
+import { AuthRegisterService } from './services/auth-register.service';
+import { AuthTokenService } from './services/auth-token.service';
+import { AuthService } from './services/auth.service';
+
 @Module({
-  controllers: [],
-  providers: [],
+  imports: [DatabaseModule],
+  controllers: [AuthController],
+  providers: [
+    AuthService,
+    AuthRegisterService,
+    AuthLoginService,
+    AuthTokenService,
+  ],
+  exports: [AuthService],
 })
 export class AuthModule {}

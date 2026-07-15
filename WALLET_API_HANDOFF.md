@@ -203,9 +203,9 @@ Track status: `[ ]` todo · `[~]` in progress · `[x]` done
 **Done when:** app boots, Swagger loads, Redis connects, empty health route works.
 
 ### Task 1 — Auth + Wallet create
-- [ ] User + Wallet Prisma models/repos
-- [ ] Register (bcrypt hash password, cost 12, create wallet) / login / JWT
-- [ ] `@Public()`, `@CurrentUser()`, JwtAuthGuard
+- [x] User + Wallet Prisma models/repos
+- [x] Register (bcrypt hash password, cost 12, create wallet) / login / JWT
+- [x] `@Public()`, `@CurrentUser()`, JwtAuthGuard
 
 **Done when:** can register, login, hit a protected route with JWT.
 
@@ -288,5 +288,5 @@ Do not copy Mongo/Mongoose or LMS domains.
 
 ### Status snapshot
 - Design: **agreed**
-- Code: **Task 0 scaffolded** — continue from Task 1
+- Code: **Task 1 done** — continue from Task 2 (ledger + wallets read)
 - Repo location: `c:\Users\owner\Desktop\fafi\wallet-api`
