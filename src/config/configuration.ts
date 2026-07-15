@@ -17,5 +17,9 @@ export default () => ({
     secretKey: process.env.FLUTTERWAVE_SECRET_KEY,
     publicKey: process.env.FLUTTERWAVE_PUBLIC_KEY,
     webhookSecret: process.env.FLUTTERWAVE_WEBHOOK_SECRET,
+    redirectUrl:
+      process.env.FLUTTERWAVE_REDIRECT_URL ??
+      'http://localhost:3010/funding/callback',
+    mock: process.env.FLUTTERWAVE_MOCK ?? 'false',
   },
 });

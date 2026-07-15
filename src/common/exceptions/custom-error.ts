@@ -8,6 +8,8 @@ export enum ErrorCode {
   CONFLICT = 'CONFLICT',
   UNPROCESSABLE_ENTITY = 'UNPROCESSABLE_ENTITY',
   TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS',
+  BAD_GATEWAY = 'BAD_GATEWAY',
+  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
   INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
 }
 
@@ -19,6 +21,8 @@ const ErrorMessages: Record<ErrorCode, string> = {
   [ErrorCode.CONFLICT]: 'Conflict',
   [ErrorCode.UNPROCESSABLE_ENTITY]: 'Unprocessable Entity',
   [ErrorCode.TOO_MANY_REQUESTS]: 'Too Many Requests',
+  [ErrorCode.BAD_GATEWAY]: 'Bad Gateway',
+  [ErrorCode.SERVICE_UNAVAILABLE]: 'Service Unavailable',
   [ErrorCode.INTERNAL_SERVER_ERROR]: 'Internal Server Error',
 };
 
@@ -30,6 +34,8 @@ const ErrorStatusCodes: Record<ErrorCode, number> = {
   [ErrorCode.CONFLICT]: 409,
   [ErrorCode.UNPROCESSABLE_ENTITY]: 422,
   [ErrorCode.TOO_MANY_REQUESTS]: 429,
+  [ErrorCode.BAD_GATEWAY]: 502,
+  [ErrorCode.SERVICE_UNAVAILABLE]: 503,
   [ErrorCode.INTERNAL_SERVER_ERROR]: 500,
 };
 
@@ -79,6 +85,10 @@ export const customError = {
     build(ErrorCode.UNPROCESSABLE_ENTITY, message, data),
   tooManyRequests: (message?: ErrorMessage, data?: unknown) =>
     build(ErrorCode.TOO_MANY_REQUESTS, message, data),
+  badGateway: (message?: ErrorMessage, data?: unknown) =>
+    build(ErrorCode.BAD_GATEWAY, message, data),
+  serviceUnavailable: (message?: ErrorMessage, data?: unknown) =>
+    build(ErrorCode.SERVICE_UNAVAILABLE, message, data),
   internalServerError: (message?: ErrorMessage, data?: unknown) =>
     build(ErrorCode.INTERNAL_SERVER_ERROR, message, data),
 };

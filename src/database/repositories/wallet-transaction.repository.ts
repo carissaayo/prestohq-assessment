@@ -76,6 +76,10 @@ export abstract class WalletTransactionRepository {
     key: string,
   ): Promise<WalletTransactionEntity | null>;
 
+  abstract findByTransferId(
+    transferId: string,
+  ): Promise<WalletTransactionEntity[]>;
+
   abstract listByWalletId(
     params: ListWalletTransactionsParams,
   ): Promise<ListWalletTransactionsResult>;

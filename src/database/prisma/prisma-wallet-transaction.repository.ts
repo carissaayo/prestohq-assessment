@@ -43,6 +43,16 @@ export class PrismaWalletTransactionRepository extends WalletTransactionReposito
     return row ? this.toEntity(row) : null;
   }
 
+  async findByTransferId(
+    transferId: string,
+  ): Promise<WalletTransactionEntity[]> {
+    const rows = await this.prisma.walletTransaction.findMany({
+      where: { transferId },
+      orderBy: { createdAt: 'asc' },
+    });
+    return rows.map((r) => this.toEntity(r));
+  }
+
   async listByWalletId(
     params: ListWalletTransactionsParams,
   ): Promise<ListWalletTransactionsResult> {

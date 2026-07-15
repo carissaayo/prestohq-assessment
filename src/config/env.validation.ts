@@ -55,6 +55,14 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
+  FLUTTERWAVE_REDIRECT_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  FLUTTERWAVE_MOCK?: string;
+
+  @IsOptional()
+  @IsString()
   SWAGGER_ENABLED?: string;
 
   @IsOptional()

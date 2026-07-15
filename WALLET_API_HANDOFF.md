@@ -218,12 +218,12 @@ Track status: `[ ]` todo · `[~]` in progress · `[x]` done
 **Done when:** unit/integration-level confidence that SUM matches posted successful txs; no raw Prisma in services.
 
 ### Task 3 — Transfers (Flutterwave funding)
-- [ ] `Transfer` model/repo
-- [ ] `FlutterwaveProvider` (init payment, verify by tx_ref, webhook signature)
-- [ ] Initiate transfer → PENDING credit journal
-- [ ] Idempotency-Key handling on `POST /transfers` (uuid, per-user, body-hash check)
-- [ ] Webhook persist + enqueue `transfer.complete`
-- [ ] Processor marks SUCCESSFUL idempotently
+- [x] `Transfer` model/repo
+- [x] `FlutterwaveProvider` (init payment, verify by tx_ref, webhook signature)
+- [x] Initiate transfer → PENDING credit journal
+- [x] Idempotency-Key handling on `POST /transfers` (uuid, per-user, body-hash check)
+- [x] Webhook persist + enqueue `transfer.complete`
+- [x] Processor marks SUCCESSFUL idempotently
 
 **Done when:** duplicate webhook does not double-credit; pending does not inflate balance.
 
@@ -288,5 +288,5 @@ Do not copy Mongo/Mongoose or LMS domains.
 
 ### Status snapshot
 - Design: **agreed**
-- Code: **Task 2 done** — continue from Task 3 (Flutterwave transfers)
+- Code: **Task 3 done** — continue from Task 4 (Withdrawals P2P)
 - Repo location: `c:\Users\owner\Desktop\fafi\wallet-api`
