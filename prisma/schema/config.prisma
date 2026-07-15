@@ -1,0 +1,10 @@
+// Prisma multi-file schema (folder mode). generator + datasource live here only.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}

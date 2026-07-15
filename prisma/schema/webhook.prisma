@@ -1,0 +1,16 @@
+model WebhookEvent {
+  id              String             @id @default(cuid())
+  provider        WebhookProvider
+  eventType       String
+  /// Provider event id or hash — unique per provider for dedupe.
+  providerEventId String
+  reference       String?
+  payload         Json
+  status          WebhookEventStatus @default(RECEIVED)
+  processedAt     DateTime?
+  createdAt       DateTime           @default(now())
+
+  @@unique([provider, providerEventId])
+  @@index([reference])
+  @@map("webhook_events")
+}

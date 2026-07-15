@@ -1,0 +1,52 @@
+enum WalletStatus {
+  ACTIVE
+  LOCKED
+}
+
+enum WalletTransactionType {
+  CREDIT
+  DEBIT
+}
+
+enum WalletTransactionPurpose {
+  FLUTTERWAVE_FUNDING
+  P2P
+  BANK_PAYOUT
+  REVERSAL
+}
+
+enum WalletTransactionStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+}
+
+enum TransferStatus {
+  INITIATED
+  PENDING
+  SUCCESSFUL
+  FAILED
+}
+
+enum WithdrawalDestinationType {
+  WALLET
+  BANK
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  SUCCESSFUL
+  FAILED
+  REVERSED
+}
+
+enum WebhookProvider {
+  FLUTTERWAVE
+}
+
+enum WebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+}

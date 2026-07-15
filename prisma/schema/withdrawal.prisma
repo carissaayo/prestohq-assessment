@@ -1,0 +1,33 @@
+/// Outflow operation (sender-owned). Withdrawal = debit (P2P or bank).
+model Withdrawal {
+  id                  String                     @id @default(cuid())
+  userId              String
+  user                User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  walletId            String
+  wallet              Wallet                     @relation("SenderWallet", fields: [walletId], references: [id], onDelete: Cascade)
+  /// Amount in kobo.
+  amount              Int
+  currency            String                     @default("NGN")
+  destinationType     WithdrawalDestinationType
+  destinationWalletId String?
+  destinationWallet   Wallet?                    @relation("DestinationWallet", fields: [destinationWalletId], references: [id])
+  bankCode            String?
+  accountNumber       String?
+  accountName         String?
+  status              WithdrawalStatus           @default(PENDING)
+  providerReference   String?                    @unique
+  providerTransferId  String?
+  debitTransactionId  String?
+  creditTransactionId String?
+  reversalTransactionId String?
+  idempotencyKey      String
+  requestBodyHash     String
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+
+  transactions WalletTransaction[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([status])
+  @@map("withdrawals")
+}

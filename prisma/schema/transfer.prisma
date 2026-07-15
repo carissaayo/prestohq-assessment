@@ -1,0 +1,24 @@
+/// Flutterwave funding operation (workflow parent). Transfer = credit/funding.
+model Transfer {
+  id               String         @id @default(cuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  walletId         String
+  wallet           Wallet         @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  /// Amount in kobo.
+  amount           Int
+  currency         String         @default("NGN")
+  status           TransferStatus @default(INITIATED)
+  flutterwaveTxRef String         @unique
+  flutterwaveId    String?
+  checkoutUrl      String?
+  idempotencyKey   String
+  requestBodyHash  String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  transactions WalletTransaction[]
+
+  @@unique([userId, idempotencyKey])
+  @@map("transfers")
+}

@@ -1,0 +1,26 @@
+/// Append-only money journal. Source of truth for wallet balances.
+model WalletTransaction {
+  id                    String                    @id @default(cuid())
+  walletId              String
+  wallet                Wallet                    @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type                  WalletTransactionType
+  purpose               WalletTransactionPurpose
+  status                WalletTransactionStatus
+  /// Amount in minor units (kobo). Always positive.
+  amount                Int
+  idempotencyKey        String                    @unique
+  reference             String?
+  counterpartWalletId   String?
+  transferId            String?
+  transfer              Transfer?                 @relation(fields: [transferId], references: [id])
+  withdrawalId          String?
+  withdrawal            Withdrawal?               @relation(fields: [withdrawalId], references: [id])
+  reversesTransactionId String?
+  reversesTransaction   WalletTransaction?        @relation("ReversalLink", fields: [reversesTransactionId], references: [id])
+  reversedBy            WalletTransaction[]       @relation("ReversalLink")
+  createdAt             DateTime                  @default(now())
+
+  @@index([walletId, createdAt])
+  @@index([walletId, status])
+  @@map("wallet_transactions")
+}

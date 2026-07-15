@@ -1,0 +1,32 @@
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  wallet       Wallet?
+  transfers    Transfer[]
+  withdrawals  Withdrawal[]
+
+  @@map("users")
+}
+
+model Wallet {
+  id        String       @id @default(cuid())
+  userId    String       @unique
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currency  String       @default("NGN")
+  status    WalletStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  /// No cached balance column — balance is always SUM of successful journal rows.
+  transactions WalletTransaction[]
+  transfers    Transfer[]
+  withdrawals  Withdrawal[]        @relation("SenderWallet")
+  incoming     Withdrawal[]        @relation("DestinationWallet")
+
+  @@map("wallets")
+}
