@@ -228,10 +228,10 @@ Track status: `[ ]` todo · `[~]` in progress · `[x]` done
 **Done when:** duplicate webhook does not double-credit; pending does not inflate balance.
 
 ### Task 4 — Withdrawals P2P
-- [ ] `Withdrawal` model/repo
-- [ ] Idempotency-Key handling on `POST /withdrawals`
-- [ ] Sync P2P in one TX: `FOR UPDATE` lock both wallets (ascending id order) → fresh SUM check → sender DEBIT + recipient CREDIT + Withdrawal SUCCESSFUL
-- [ ] Reject self-transfer
+- [x] `Withdrawal` model/repo
+- [x] Idempotency-Key handling on `POST /withdrawals`
+- [x] Sync P2P in one TX: `FOR UPDATE` lock both wallets (ascending id order) → fresh SUM check → sender DEBIT + recipient CREDIT + Withdrawal SUCCESSFUL
+- [x] Reject self-transfer
 
 **Done when:** concurrent P2P cannot overdraw; recipient balance reflects CREDIT journal via SUM.
 
@@ -288,5 +288,5 @@ Do not copy Mongo/Mongoose or LMS domains.
 
 ### Status snapshot
 - Design: **agreed**
-- Code: **Task 3 done** — continue from Task 4 (Withdrawals P2P)
+- Code: **Task 4 done** — continue from Task 5 (bank withdrawals + reversal)
 - Repo location: `c:\Users\owner\Desktop\fafi\wallet-api`

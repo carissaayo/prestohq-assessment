@@ -14,6 +14,7 @@ import {
   WalletTransactionRepository,
   WalletTxStatus,
 } from '../repositories/wallet-transaction.repository';
+import { lockWalletRow, sumSuccessfulBalance } from './ledger-lock.util';
 
 type TxClient = Prisma.TransactionClient;
 
@@ -24,7 +25,7 @@ export class PrismaWalletTransactionRepository extends WalletTransactionReposito
   }
 
   async getSuccessfulBalance(walletId: string): Promise<number> {
-    return this.sumSuccessfulBalance(this.prisma, walletId);
+    return sumSuccessfulBalance(this.prisma, walletId);
   }
 
   async findById(id: string): Promise<WalletTransactionEntity | null> {
@@ -79,9 +80,8 @@ export class PrismaWalletTransactionRepository extends WalletTransactionReposito
   async withTransaction<T>(fn: (ops: LedgerTxOps) => Promise<T>): Promise<T> {
     return this.prisma.$transaction(async (tx) => {
       const ops: LedgerTxOps = {
-        lockWallet: (walletId) => this.lockWallet(tx, walletId),
-        getSuccessfulBalance: (walletId) =>
-          this.sumSuccessfulBalance(tx, walletId),
+        lockWallet: (walletId) => lockWalletRow(tx, walletId),
+        getSuccessfulBalance: (walletId) => sumSuccessfulBalance(tx, walletId),
         insert: (data) => this.insert(tx, data),
         findById: async (id) => {
           const row = await tx.walletTransaction.findUnique({ where: { id } });
@@ -97,32 +97,6 @@ export class PrismaWalletTransactionRepository extends WalletTransactionReposito
       };
       return fn(ops);
     });
-  }
-
-  private async lockWallet(tx: TxClient, walletId: string): Promise<void> {
-    const rows = await tx.$queryRaw<{ id: string }[]>`
-      SELECT id FROM wallets WHERE id = ${walletId} FOR UPDATE
-    `;
-    if (!rows.length) {
-      throw new Error(`Wallet not found: ${walletId}`);
-    }
-  }
-
-  private async sumSuccessfulBalance(
-    client: TxClient | PrismaService,
-    walletId: string,
-  ): Promise<number> {
-    const rows = await client.$queryRaw<{ balance: bigint | number | null }[]>`
-      SELECT
-        COALESCE(SUM(CASE WHEN type = 'CREDIT' THEN amount ELSE 0 END), 0)
-        - COALESCE(SUM(CASE WHEN type = 'DEBIT' THEN amount ELSE 0 END), 0)
-        AS balance
-      FROM wallet_transactions
-      WHERE "walletId" = ${walletId}
-        AND status = 'SUCCESSFUL'
-    `;
-    const raw = rows[0]?.balance ?? 0;
-    return typeof raw === 'bigint' ? Number(raw) : Number(raw);
   }
 
   private async insert(

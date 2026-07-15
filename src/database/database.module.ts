@@ -5,11 +5,13 @@ import { PrismaUserRepository } from './prisma/prisma-user.repository';
 import { PrismaWalletRepository } from './prisma/prisma-wallet.repository';
 import { PrismaWalletTransactionRepository } from './prisma/prisma-wallet-transaction.repository';
 import { PrismaWebhookEventRepository } from './prisma/prisma-webhook-event.repository';
+import { PrismaWithdrawalRepository } from './prisma/prisma-withdrawal.repository';
 import { TransferRepository } from './repositories/transfer.repository';
 import { UserRepository } from './repositories/user.repository';
 import { WalletRepository } from './repositories/wallet.repository';
 import { WalletTransactionRepository } from './repositories/wallet-transaction.repository';
 import { WebhookEventRepository } from './repositories/webhook-event.repository';
+import { WithdrawalRepository } from './repositories/withdrawal.repository';
 
 /**
  * Binds abstract repositories to Prisma implementations.
@@ -25,6 +27,7 @@ import { WebhookEventRepository } from './repositories/webhook-event.repository'
     },
     { provide: TransferRepository, useClass: PrismaTransferRepository },
     { provide: WebhookEventRepository, useClass: PrismaWebhookEventRepository },
+    { provide: WithdrawalRepository, useClass: PrismaWithdrawalRepository },
   ],
   exports: [
     UserRepository,
@@ -32,6 +35,7 @@ import { WebhookEventRepository } from './repositories/webhook-event.repository'
     WalletTransactionRepository,
     TransferRepository,
     WebhookEventRepository,
+    WithdrawalRepository,
   ],
 })
 export class DatabaseModule {}

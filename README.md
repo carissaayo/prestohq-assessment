@@ -33,4 +33,4 @@ Matches hrflow Nest conventions: `config/`, `common/`, `core/`, `database/`, `pr
 
 ## Status
 
-Tasks 0–3 complete (scaffold, auth, ledger, Flutterwave funding + webhook). Next: Task 4 — P2P withdrawals.
+Tasks 0–4 complete (scaffold, auth, ledger, Flutterwave funding, P2P withdrawals). Next: Task 5 — bank withdrawals + reversal.
