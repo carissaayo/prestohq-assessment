@@ -244,21 +244,23 @@ Track status: `[ ]` todo · `[~]` in progress · `[x]` done
 **Done when:** failed payout restores spendable balance via reversal credit; retries safe.
 
 ### Task 6 — Concurrency test (high priority — proves the safety claims)
-- [ ] Seed a wallet with a known balance (e.g. 10,000 kobo).
-- [ ] Fire N (e.g. 20) simultaneous withdrawal/P2P requests each requesting an amount that would overdraw if more than one succeeded (e.g. 6,000 kobo each against a 10,000 balance, N=20).
-- [ ] Assert: exactly the number of requests that fit the balance succeed (here: 1), the rest fail with `422`, and final balance via SUM matches exactly one successful debit.
-- [ ] Repeat for P2P (two wallets, concurrent bidirectional transfers) to confirm no deadlock and no overdraw.
-- [ ] Include this as an automated test (Jest + supertest against a real Postgres, or a script hitting the deployed instance) and document the exact command to run it in the README.
+- [x] Seed a wallet with a known balance (e.g. 10,000 kobo).
+- [x] Fire N (e.g. 20) simultaneous withdrawal/P2P requests each requesting an amount that would overdraw if more than one succeeded (e.g. 6,000 kobo each against a 10,000 balance, N=20).
+- [x] Assert: exactly the number of requests that fit the balance succeed (here: 1), the rest fail with `422`, and final balance via SUM matches exactly one successful debit.
+- [x] Repeat for P2P (two wallets, concurrent bidirectional transfers) to confirm no deadlock and no overdraw.
+- [x] Include this as an automated test (Jest + supertest against a real Postgres, or a script hitting the deployed instance) and document the exact command to run it in the README.
+
+**Command:** `npm run test:concurrency` (needs `docker:infra`; also `scripts/concurrency-test.js` against a live API).
 
 **Done when:** test is reproducible, passes consistently across multiple runs, and is referenced in the README as evidence of safety — not just asserted in prose.
 
 ### Task 7 — Polish & ship
-- [ ] Swagger complete; Postman optional
-- [ ] README: run instructions, env, assumptions, naming glossary, webhook setup, idempotency-key rationale, concurrency-model rationale (Option A), concurrency test command
-- [ ] Deploy publicly (Railway/Render/Fly/etc.)
+- [x] Swagger complete; Postman optional
+- [x] README: run instructions, env, assumptions, naming glossary, webhook setup, idempotency-key rationale, concurrency-model rationale (Option A), concurrency test command
+- [ ] Deploy publicly (Railway/Render/Fly/etc.) — Dockerfile ready; needs host + secrets from you
 - [ ] Optional: simple reconcile job comparing nothing-to-hide SUM health
 
-**Done when:** brief non-negotiables checklist all pass.
+**Done when:** brief non-negotiables checklist all pass + public URL.
 
 ---
 
@@ -288,5 +290,6 @@ Do not copy Mongo/Mongoose or LMS domains.
 
 ### Status snapshot
 - Design: **agreed**
-- Code: **Task 5 done** — continue from Task 6 (concurrency test)
+- Code: **Task 7 nearly done** — README + Swagger + Dockerfile; **public deploy pending** your host choice/credentials
 - Repo location: `c:\Users\owner\Desktop\fafi\wallet-api`
+- Concurrency: `npm run test:concurrency` passed 3× in a row (overdraw 1/20 + bidirectional conservation)

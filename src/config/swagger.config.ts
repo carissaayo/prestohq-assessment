@@ -19,11 +19,17 @@ export function setupSwagger(app: INestApplication): void {
     .setTitle('Wallet & Payments API')
     .setDescription(
       [
-        'Wallet funding (Transfer) and outflows (Withdrawal: P2P or bank).',
-        'Transfer means Flutterwave funding; Withdrawal covers P2P and bank outflows.',
-        'Balances are always computed as SUM(successful credits) − SUM(successful debits).',
-        'POST /transfers and POST /withdrawals require an Idempotency-Key header (UUID).',
-      ].join(' '),
+        '## Naming',
+        '- **Transfer** = Flutterwave funding (credit).',
+        '- **Withdrawal** = P2P or bank outflow (debit).',
+        '- **Balance** = SUM(successful credits) − SUM(successful debits); never a cached column.',
+        '',
+        '## Safety',
+        '- Amounts are integer **kobo**.',
+        '- `POST /transfers` and `POST /withdrawals` require `Idempotency-Key` (UUID).',
+        '- Debits use `FOR UPDATE` + fresh SUM (Option A). P2P locks both wallets by ascending id.',
+        '- Flutterwave webhook: verify → store event → enqueue; money only in workers.',
+      ].join('\n'),
     )
     .setVersion('0.1.0')
     .addBearerAuth(
