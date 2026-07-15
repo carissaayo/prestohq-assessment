@@ -210,10 +210,10 @@ Track status: `[ ]` todo · `[~]` in progress · `[x]` done
 **Done when:** can register, login, hit a protected route with JWT.
 
 ### Task 2 — Ledger + wallets read
-- [ ] `WalletTransaction` model/repo
-- [ ] `WalletLedgerService` (credit pending/successful, debit if sufficient via lock+SUM, reversal) — keep <200 LOC; split if needed
-- [ ] `GET /wallets/me` fresh balance via SUM
-- [ ] `GET /wallets/me/transactions`
+- [x] `WalletTransaction` model/repo
+- [x] `WalletLedgerService` (credit pending/successful, debit if sufficient via lock+SUM, reversal) — keep <200 LOC; split if needed
+- [x] `GET /wallets/me` fresh balance via SUM
+- [x] `GET /wallets/me/transactions`
 
 **Done when:** unit/integration-level confidence that SUM matches posted successful txs; no raw Prisma in services.
 
@@ -288,5 +288,5 @@ Do not copy Mongo/Mongoose or LMS domains.
 
 ### Status snapshot
 - Design: **agreed**
-- Code: **Task 1 done** — continue from Task 2 (ledger + wallets read)
+- Code: **Task 2 done** — continue from Task 3 (Flutterwave transfers)
 - Repo location: `c:\Users\owner\Desktop\fafi\wallet-api`
