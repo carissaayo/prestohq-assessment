@@ -236,10 +236,10 @@ Track status: `[ ]` todo · `[~]` in progress · `[x]` done
 **Done when:** concurrent P2P cannot overdraw; recipient balance reflects CREDIT journal via SUM.
 
 ### Task 5 — Withdrawals bank + reversal
-- [ ] Accept bank withdrawal → lock + fresh SUM check → DEBIT + PROCESSING → `withdrawal.payout`
-- [ ] Payout processor + settle/reconcile processor
-- [ ] On fail: CREDIT `REVERSAL` with `reversesTransactionId`, idempotent
-- [ ] Flutterwave transfer initiate + status
+- [x] Accept bank withdrawal → lock + fresh SUM check → DEBIT + PROCESSING → `withdrawal.payout`
+- [x] Payout processor + settle/reconcile processor
+- [x] On fail: CREDIT `REVERSAL` with `reversesTransactionId`, idempotent
+- [x] Flutterwave transfer initiate + status
 
 **Done when:** failed payout restores spendable balance via reversal credit; retries safe.
 
@@ -288,5 +288,5 @@ Do not copy Mongo/Mongoose or LMS domains.
 
 ### Status snapshot
 - Design: **agreed**
-- Code: **Task 4 done** — continue from Task 5 (bank withdrawals + reversal)
+- Code: **Task 5 done** — continue from Task 6 (concurrency test)
 - Repo location: `c:\Users\owner\Desktop\fafi\wallet-api`

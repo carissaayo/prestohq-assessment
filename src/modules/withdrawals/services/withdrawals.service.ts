@@ -5,12 +5,14 @@ import type { ServiceResponseData } from '../../../common/handlers/response-hand
 import type { JwtPayloadUser } from '../../../core/security/decorators/current-user.decorator';
 import { WithdrawalRepository } from '../../../database/repositories/withdrawal.repository';
 import { CreateWithdrawalDto } from '../dto/create-withdrawal.dto';
+import { WithdrawalBankService } from './withdrawal-bank.service';
 import { WithdrawalP2pService } from './withdrawal-p2p.service';
 
 @Injectable()
 export class WithdrawalsService {
   constructor(
     private readonly p2p: WithdrawalP2pService,
+    private readonly bank: WithdrawalBankService,
     private readonly withdrawals: WithdrawalRepository,
   ) {}
 
@@ -19,7 +21,10 @@ export class WithdrawalsService {
     dto: CreateWithdrawalDto,
     idempotencyKey: string,
   ): Promise<ServiceResponseData> {
-    return this.p2p.create(actor, dto, idempotencyKey);
+    if (dto.destinationType === 'WALLET') {
+      return this.p2p.create(actor, dto, idempotencyKey);
+    }
+    return this.bank.create(actor, dto, idempotencyKey);
   }
 
   async getOne(
@@ -40,6 +45,7 @@ export class WithdrawalsService {
         destinationType: withdrawal.destinationType,
         destinationWalletId: withdrawal.destinationWalletId,
         status: withdrawal.status,
+        providerReference: withdrawal.providerReference,
         createdAt: withdrawal.createdAt,
       },
     };

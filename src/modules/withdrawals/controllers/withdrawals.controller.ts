@@ -30,7 +30,7 @@ export class WithdrawalsController {
   })
   @ApiOperation({
     summary:
-      'Withdraw to another user wallet (P2P). Transfer = funding; Withdrawal = outflow.',
+      'Withdraw to another wallet (P2P) or bank account. Transfer = funding; Withdrawal = outflow.',
   })
   create(
     @CurrentUser() user: JwtPayloadUser,

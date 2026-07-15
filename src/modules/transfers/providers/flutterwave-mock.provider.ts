@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 
 import type {
+  BankTransferStatusResult,
   IFlutterwaveProvider,
+  InitiateBankTransferParams,
+  InitiateBankTransferResult,
   InitiatePaymentParams,
   InitiatePaymentResult,
   VerifyPaymentResult,
@@ -9,7 +12,11 @@ import type {
 
 /**
  * Local/dev provider when FLUTTERWAVE_MOCK=true.
- * initiate returns a fake checkout URL; verify treats tx_ref as successful.
+ *
+ * Bank transfer mock switches (accountNumber):
+ * - ends with `000` → initiate FAILED
+ * - ends with `999` → initiate PENDING, settle FAILED
+ * - otherwise → initiate SUCCESSFUL
  */
 @Injectable()
 export class FlutterwaveMockProvider implements IFlutterwaveProvider {
@@ -23,8 +30,6 @@ export class FlutterwaveMockProvider implements IFlutterwaveProvider {
   }
 
   async verifyByTxRef(txRef: string): Promise<VerifyPaymentResult> {
-    // Encode amount in tx_ref suffix when tests use fund_<amount>_<id> — otherwise 0.
-    // Production processor always re-checks transfer.amount against local record.
     return {
       status: 'successful',
       amountKobo: 0,
@@ -36,5 +41,43 @@ export class FlutterwaveMockProvider implements IFlutterwaveProvider {
 
   verifyWebhookSignature(verifHashHeader: string | undefined): boolean {
     return verifHashHeader === 'mock-webhook-secret';
+  }
+
+  async initiateBankTransfer(
+    params: InitiateBankTransferParams,
+  ): Promise<InitiateBankTransferResult> {
+    const acct = params.accountNumber;
+    if (acct.endsWith('000')) {
+      return { status: 'FAILED', message: 'Mock initiate failure' };
+    }
+    if (acct.endsWith('999')) {
+      return {
+        status: 'PENDING',
+        transferId: `mock-xfer-fail-${params.reference}`,
+        message: 'Mock pending — will fail on settle',
+      };
+    }
+    return {
+      status: 'SUCCESSFUL',
+      transferId: `mock-xfer-ok-${params.reference}`,
+      message: 'Mock bank transfer successful',
+    };
+  }
+
+  async getBankTransferStatus(
+    transferId: string,
+  ): Promise<BankTransferStatusResult> {
+    if (transferId.includes('fail')) {
+      return {
+        status: 'FAILED',
+        transferId,
+        message: 'Mock settle failure',
+      };
+    }
+    return {
+      status: 'SUCCESSFUL',
+      transferId,
+      message: 'Mock settle successful',
+    };
   }
 }

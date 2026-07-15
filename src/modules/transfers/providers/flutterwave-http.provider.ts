@@ -4,13 +4,16 @@ import { timingSafeEqual } from 'crypto';
 
 import { customError } from '../../../common/exceptions/custom-error';
 import { AppLogger, ContextLogger } from '../../../core/logger';
-import { koboToNaira, nairaToKobo } from '../../../common/utils/money';
 import type {
+  BankTransferStatusResult,
   IFlutterwaveProvider,
+  InitiateBankTransferParams,
+  InitiateBankTransferResult,
   InitiatePaymentParams,
   InitiatePaymentResult,
   VerifyPaymentResult,
 } from './flutterwave.interface';
+import { koboToNaira, nairaToKobo } from '../../../common/utils/money';
 
 const FLW_BASE = 'https://api.flutterwave.com/v3';
 
@@ -137,6 +140,96 @@ export class FlutterwaveHttpProvider implements IFlutterwaveProvider {
       return false;
     }
     return timingSafeEqual(a, b);
+  }
+
+  async initiateBankTransfer(
+    params: InitiateBankTransferParams,
+  ): Promise<InitiateBankTransferResult> {
+    const secret = this.requireSecret();
+    const response = await fetch(`${FLW_BASE}/transfers`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${secret}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        account_bank: params.bankCode,
+        account_number: params.accountNumber,
+        amount: koboToNaira(params.amountKobo),
+        currency: params.currency,
+        narration: params.narration,
+        reference: params.reference,
+      }),
+    });
+
+    const body = (await response.json()) as {
+      status?: string;
+      message?: string;
+      data?: { id?: number | string; status?: string };
+    };
+
+    if (!response.ok || body.status !== 'success' || !body.data) {
+      this.log.warn('Flutterwave bank transfer initiate failed', {
+        message: body.message,
+      });
+      return {
+        status: 'FAILED',
+        message: body.message ?? 'Bank transfer initiation failed',
+      };
+    }
+
+    const flwStatus = (body.data.status ?? '').toLowerCase();
+    let status: InitiateBankTransferResult['status'] = 'PENDING';
+    if (flwStatus === 'successful' || flwStatus === 'success') {
+      status = 'SUCCESSFUL';
+    } else if (flwStatus === 'failed') {
+      status = 'FAILED';
+    }
+
+    return {
+      status,
+      transferId: body.data.id?.toString(),
+      message: body.message,
+    };
+  }
+
+  async getBankTransferStatus(
+    transferId: string,
+  ): Promise<BankTransferStatusResult> {
+    const secret = this.requireSecret();
+    const response = await fetch(`${FLW_BASE}/transfers/${transferId}`, {
+      headers: { Authorization: `Bearer ${secret}` },
+    });
+
+    const body = (await response.json()) as {
+      status?: string;
+      message?: string;
+      data?: { id?: number | string; status?: string };
+    };
+
+    if (!response.ok || body.status !== 'success' || !body.data) {
+      return {
+        status: 'UNKNOWN',
+        transferId,
+        message: body.message,
+      };
+    }
+
+    const flwStatus = (body.data.status ?? '').toLowerCase();
+    let status: BankTransferStatusResult['status'] = 'UNKNOWN';
+    if (flwStatus === 'successful' || flwStatus === 'success') {
+      status = 'SUCCESSFUL';
+    } else if (flwStatus === 'failed') {
+      status = 'FAILED';
+    } else if (flwStatus === 'pending' || flwStatus === 'new') {
+      status = 'PENDING';
+    }
+
+    return {
+      status,
+      transferId: body.data.id?.toString() ?? transferId,
+      message: body.message,
+    };
   }
 
   private requireSecret(): string {

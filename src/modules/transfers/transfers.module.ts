@@ -43,6 +43,6 @@ import { TransfersService } from './services/transfers.service';
       },
     },
   ],
-  exports: [TransfersService],
+  exports: [TransfersService, FLUTTERWAVE_PROVIDER],
 })
 export class TransfersModule {}

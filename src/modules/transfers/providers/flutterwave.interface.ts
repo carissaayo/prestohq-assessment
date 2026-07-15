@@ -24,6 +24,27 @@ export interface VerifyPaymentResult {
   providerTransactionId?: string;
 }
 
+export interface InitiateBankTransferParams {
+  reference: string;
+  amountKobo: number;
+  currency: string;
+  bankCode: string;
+  accountNumber: string;
+  narration: string;
+}
+
+export interface InitiateBankTransferResult {
+  status: 'SUCCESSFUL' | 'PENDING' | 'FAILED';
+  transferId?: string;
+  message?: string;
+}
+
+export interface BankTransferStatusResult {
+  status: 'SUCCESSFUL' | 'PENDING' | 'FAILED' | 'UNKNOWN';
+  transferId?: string;
+  message?: string;
+}
+
 export const FLUTTERWAVE_PROVIDER = Symbol('FLUTTERWAVE_PROVIDER');
 
 export interface IFlutterwaveProvider {
@@ -32,4 +53,10 @@ export interface IFlutterwaveProvider {
   ): Promise<InitiatePaymentResult>;
   verifyByTxRef(txRef: string): Promise<VerifyPaymentResult>;
   verifyWebhookSignature(verifHashHeader: string | undefined): boolean;
+  initiateBankTransfer(
+    params: InitiateBankTransferParams,
+  ): Promise<InitiateBankTransferResult>;
+  getBankTransferStatus(
+    transferId: string,
+  ): Promise<BankTransferStatusResult>;
 }

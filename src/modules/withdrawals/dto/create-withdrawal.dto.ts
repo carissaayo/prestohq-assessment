@@ -1,31 +1,48 @@
 import { Type } from 'class-transformer';
 import {
-  Equals,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
+  Matches,
   Max,
+  MaxLength,
   Min,
   MinLength,
   ValidateIf,
 } from 'class-validator';
 
 export class CreateWithdrawalDto {
-  @Equals('WALLET', {
-    message: 'Only destinationType WALLET is supported in this release',
-  })
-  destinationType!: 'WALLET';
+  @IsIn(['WALLET', 'BANK'])
+  destinationType!: 'WALLET' | 'BANK';
 
   @ValidateIf((o: CreateWithdrawalDto) => o.destinationType === 'WALLET')
   @IsString()
   @MinLength(3)
-  recipientUsername!: string;
+  recipientUsername?: string;
+
+  @ValidateIf((o: CreateWithdrawalDto) => o.destinationType === 'BANK')
+  @IsString()
+  @Matches(/^\d{3}$/, { message: 'bankCode must be 3 digits' })
+  bankCode?: string;
+
+  @ValidateIf((o: CreateWithdrawalDto) => o.destinationType === 'BANK')
+  @IsString()
+  @MinLength(10)
+  @MaxLength(10)
+  accountNumber?: string;
+
+  @ValidateIf((o: CreateWithdrawalDto) => o.destinationType === 'BANK')
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  accountName?: string;
 
   /** Amount in kobo. */
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(50_000_000_00)
+  @Max(5_000_000_000)
   amount!: number;
 
   @IsOptional()

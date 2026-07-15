@@ -44,12 +44,42 @@ export interface ExecuteP2pWithdrawalResult {
   created: boolean;
 }
 
+export interface ExecuteBankWithdrawalData {
+  userId: string;
+  walletId: string;
+  amount: number;
+  currency: string;
+  bankCode: string;
+  accountNumber: string;
+  accountName: string;
+  providerReference: string;
+  idempotencyKey: string;
+  requestBodyHash: string;
+}
+
+export interface ExecuteBankWithdrawalResult {
+  withdrawal: WithdrawalEntity;
+  created: boolean;
+}
+
+export interface UpdateWithdrawalProviderData {
+  status?: WithdrawalStatusValue;
+  providerTransferId?: string | null;
+  debitTransactionId?: string | null;
+  creditTransactionId?: string | null;
+  reversalTransactionId?: string | null;
+}
+
 export abstract class WithdrawalRepository {
   abstract findById(id: string): Promise<WithdrawalEntity | null>;
 
   abstract findByUserAndIdempotencyKey(
     userId: string,
     idempotencyKey: string,
+  ): Promise<WithdrawalEntity | null>;
+
+  abstract findByProviderReference(
+    providerReference: string,
   ): Promise<WithdrawalEntity | null>;
 
   /**
@@ -59,4 +89,16 @@ export abstract class WithdrawalRepository {
   abstract executeP2p(
     data: ExecuteP2pWithdrawalData,
   ): Promise<ExecuteP2pWithdrawalResult>;
+
+  /**
+   * Atomic bank accept: lock wallet, SUM-check, DEBIT SUCCESSFUL + Withdrawal PROCESSING.
+   */
+  abstract executeBankAccept(
+    data: ExecuteBankWithdrawalData,
+  ): Promise<ExecuteBankWithdrawalResult>;
+
+  abstract update(
+    id: string,
+    data: UpdateWithdrawalProviderData,
+  ): Promise<WithdrawalEntity>;
 }
