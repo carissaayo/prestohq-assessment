@@ -16,7 +16,7 @@ import {
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const keyPrefix = config.get<string>('redis.keyPrefix') ?? 'wallet-api:';
-        const settings = buildRedisConnectionSettings({
+        const { connection } = buildRedisConnectionSettings({
           url: config.get<string>('redis.url'),
           host: config.get<string>('redis.host'),
           port: config.get<number>('redis.port'),
@@ -27,9 +27,7 @@ import {
         });
 
         return {
-          connection: settings.url
-            ? { url: settings.url, ...settings.options }
-            : settings.options,
+          connection,
           prefix: `${keyPrefix}bull:`,
         };
       },

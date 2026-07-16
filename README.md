@@ -51,7 +51,8 @@ Or use the included `Dockerfile` (migrate then start). Provide managed Postgres,
 |----------|---------|
 | `PORT` | HTTP port (default `3010`) |
 | `DATABASE_URL` | PostgreSQL |
-| `REDIS_HOST` / `REDIS_PORT` / `REDIS_URL` | BullMQ |
+| `REDIS_HOST` / `REDIS_PORT` | Local / Docker Redis (compose maps **6380**) |
+| `REDIS_URL` | Optional; managed Redis (`redis://` or `rediss://…`). **Overrides** host/port when set |
 | `REDIS_KEY_PREFIX` | Redis key namespace |
 | `JWT_SECRET` / `JWT_EXPIRES_IN` | Access tokens |
 | `FLUTTERWAVE_MOCK` | `true` = in-process mock provider; `false` = live Flutterwave HTTP |

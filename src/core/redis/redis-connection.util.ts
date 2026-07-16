@@ -8,24 +8,38 @@ export type RedisConnectionInput = {
   commandTimeout?: number | null;
 };
 
+/**
+ * Prefer a single REDIS_URL (Render, Upstash, etc.).
+ * Host/port/password are only used when url is absent.
+ */
 export function buildRedisConnectionSettings(input: RedisConnectionInput) {
+  const shared: Record<string, unknown> = {
+    maxRetriesPerRequest: input.maxRetriesPerRequest ?? null,
+    lazyConnect: input.lazyConnect ?? false,
+  };
+
+  if (input.commandTimeout !== undefined) {
+    shared.commandTimeout = input.commandTimeout;
+  }
+
+  if (input.url?.trim()) {
+    return {
+      connection: {
+        url: input.url.trim(),
+        ...shared,
+      },
+    };
+  }
+
   const options: Record<string, unknown> = {
     host: input.host ?? '127.0.0.1',
     port: input.port ?? 6379,
-    maxRetriesPerRequest: input.maxRetriesPerRequest ?? null,
-    lazyConnect: input.lazyConnect ?? false,
+    ...shared,
   };
 
   if (input.password) {
     options.password = input.password;
   }
 
-  if (input.commandTimeout !== undefined) {
-    options.commandTimeout = input.commandTimeout;
-  }
-
-  return {
-    url: input.url,
-    options,
-  };
+  return { connection: options };
 }
