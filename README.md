@@ -12,6 +12,33 @@ Balances are never stored as a mutable cache. The ledger is append-only; availab
 | **Withdrawal** | Outflow — `WALLET` (P2P) or `BANK` (Flutterwave payout) |
 | **WalletTransaction** | Journal row (`CREDIT` / `DEBIT` / `REVERSAL`) |
 
+## Deployed API
+
+Base URL: [https://prestohq-assessment.onrender.com](https://prestohq-assessment.onrender.com)
+
+All JSON API routes are under **`/api/v1`**. Examples:
+
+| | |
+|--|--|
+| Health | `GET https://prestohq-assessment.onrender.com/api/v1/health` |
+| OpenAPI | [https://prestohq-assessment.onrender.com/api/docs](https://prestohq-assessment.onrender.com/api/docs) |
+| Flutterwave webhook | `POST https://prestohq-assessment.onrender.com/api/v1/webhooks/flutterwave` |
+| Checkout return | `GET https://prestohq-assessment.onrender.com/funding/callback` (not under `/api/v1`) |
+
+On the free Render tier the service may **sleep when idle**. The first request after idle can take **30–60+ seconds** while the instance wakes; later requests are normal. Retry once if the first call times out.
+
+## Decisions
+
+The wallet has no cached balance column. Every spendable amount is derived from successful journal rows only, so a row’s status—not a side counter—is the source of truth.
+
+**Duplicate webhook:** Events are unique on `(provider, providerEventId)` from Flutterwave `data.id`. A second delivery returns `200`, does not insert another event, and does not double-credit; if the first was not yet `PROCESSED`, the complete job may be re-enqueued safely (transfer/credit completion is idempotent).
+
+**Concurrent withdrawals against insufficient combined funds:** Debits run in a DB transaction with `SELECT … FOR UPDATE` on the wallet row(s), then a fresh `SUM` of successful rows, then the debit insert. Only one concurrent debit can pass the check; the other rolls back with `422`. P2P locks both wallets in ascending id order to avoid deadlocks.
+
+**Deposit never confirmed:** `POST /transfers` creates a **PENDING** credit (excluded from `SUM`) and a pending transfer. Until a verified webhook → worker marks that credit **SUCCESSFUL**, the funds never appear in balance. Abandoned checkouts leave spendable balance unchanged.
+
+Failed bank payouts add a compensating **REVERSAL** credit; original debits are never deleted or rewritten.
+
 ## Requirements
 
 - Node.js 20+
@@ -58,8 +85,8 @@ Or use the included `Dockerfile` (migrate then start). Provide managed Postgres,
 | `FLUTTERWAVE_MOCK` | `true` = in-process mock provider; `false` = live Flutterwave HTTP |
 | `FLUTTERWAVE_SECRET_KEY` | Secret key (required when mock is off) |
 | `FLUTTERWAVE_PUBLIC_KEY` | Public key |
-| `FLUTTERWAVE_WEBHOOK_SECRET` | Must match dashboard secret (`verif-hash` header) |
-| `FLUTTERWAVE_REDIRECT_URL` | Browser return URL after checkout (e.g. `https://<host>/funding/callback`) |
+| `FLUTTERWAVE_WEBHOOK_SECRET` | Must match dashboard hash (`verif-hash` header) |
+| `FLUTTERWAVE_REDIRECT_URL` | Checkout return URL (e.g. `https://prestohq-assessment.onrender.com/funding/callback`) |
 | `SWAGGER_ENABLED` | Force OpenAPI on/off (`true` to expose in production) |
 
 Template: `.env.example`.
@@ -134,13 +161,11 @@ npm run test:concurrency
 
 ## Flutterwave
 
-Dashboard:
+Dashboard (deployed):
 
-1. Webhook URL: `https://<public-host>/api/v1/webhooks/flutterwave`
+1. Webhook URL: `https://prestohq-assessment.onrender.com/api/v1/webhooks/flutterwave`
 2. Secret hash = `FLUTTERWAVE_WEBHOOK_SECRET`
-3. Redirect URL = `FLUTTERWAVE_REDIRECT_URL` (must be reachable by the payer’s browser)
-
-For local tunnels (e.g. ngrok), use the tunnel HTTPS origin for both webhook and redirect, and keep the tunnel process running while testing live charges.
+3. Redirect URL = `https://prestohq-assessment.onrender.com/funding/callback`
 
 With `FLUTTERWAVE_MOCK=true`, no live Flutterwave HTTP is used; webhook signature expects `verif-hash: mock-webhook-secret`. Mock bank account suffixes: `000` fails initiate, `999` fails settle.
 
