@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { customError } from '../../../common/exceptions/custom-error';
 import type { ServiceResponseData } from '../../../common/handlers/response-handler';
 import { hashRequestBody } from '../../../common/utils/idempotency';
+import { AppLogger, ContextLogger } from '../../../core/logger';
 import type { JwtPayloadUser } from '../../../core/security/decorators/current-user.decorator';
 import { UserRepository } from '../../../database/repositories/user.repository';
 import { WalletRepository } from '../../../database/repositories/wallet.repository';
@@ -11,11 +12,16 @@ import { CreateWithdrawalDto } from '../dto/create-withdrawal.dto';
 
 @Injectable()
 export class WithdrawalP2pService {
+  private readonly log: ContextLogger;
+
   constructor(
     private readonly withdrawals: WithdrawalRepository,
     private readonly users: UserRepository,
     private readonly wallets: WalletRepository,
-  ) {}
+    appLogger: AppLogger,
+  ) {
+    this.log = appLogger.createContext(WithdrawalP2pService.name);
+  }
 
   async create(
     actor: JwtPayloadUser,
@@ -69,6 +75,16 @@ export class WithdrawalP2pService {
       idempotencyKey,
       requestBodyHash: bodyHash,
     });
+
+    this.log.action(
+      result.created ? 'P2P withdrawal completed' : 'P2P withdrawal idempotent replay',
+      {
+        userId: actor.userId,
+        withdrawalId: result.withdrawal.id,
+        amount: dto.amount,
+        destinationWalletId: recipientWallet.id,
+      },
+    );
 
     return {
       message: result.created

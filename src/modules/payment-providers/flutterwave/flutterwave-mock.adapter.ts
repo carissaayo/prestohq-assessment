@@ -8,10 +8,10 @@ import type {
   InitiatePaymentParams,
   InitiatePaymentResult,
   VerifyPaymentResult,
-} from './flutterwave.interface';
+} from './flutterwave-payment.interface';
 
 /**
- * Local/dev provider when FLUTTERWAVE_MOCK=true.
+ * Local/dev adapter when FLUTTERWAVE_MOCK=true.
  *
  * Bank transfer mock switches (accountNumber):
  * - ends with `000` → initiate FAILED
@@ -19,7 +19,7 @@ import type {
  * - otherwise → initiate SUCCESSFUL
  */
 @Injectable()
-export class FlutterwaveMockProvider implements IFlutterwaveProvider {
+export class FlutterwaveMockAdapter implements IFlutterwaveProvider {
   async initiatePayment(
     params: InitiatePaymentParams,
   ): Promise<InitiatePaymentResult> {

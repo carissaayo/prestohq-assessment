@@ -56,16 +56,38 @@ describe('Concurrency safety (Option A)', () => {
   async function register(prefix: string): Promise<Authed> {
     const email = `${prefix}${Date.now()}${Math.floor(Math.random() * 1e6)}@example.com`;
     const username = `${prefix}${Date.now().toString().slice(-5)}${Math.floor(Math.random() * 1000)}`;
+    const password = 'Password1!';
+    const pin = '1234';
     const res = await api()
       .post('/api/v1/auth/register')
-      .send({ email, username, password: 'Password1!' })
+      .send({
+        email,
+        username,
+        firstName: 'Test',
+        lastName: 'User',
+        password,
+        confirmPassword: password,
+      })
       .expect(201);
 
+    const token = res.body.accessToken as string;
+
+    await api()
+      .post('/api/v1/auth/pin')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ pin, confirmPin: pin, password })
+      .expect(201);
+
+    const me = await api()
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
     return {
-      token: res.body.accessToken as string,
-      userId: res.body.data.user.id as string,
-      username: res.body.data.user.username as string,
-      walletId: res.body.data.user.walletId as string,
+      token,
+      userId: me.body.data.user.id as string,
+      username: me.body.data.user.username as string,
+      walletId: me.body.data.user.walletId as string,
     };
   }
 
@@ -105,6 +127,7 @@ describe('Concurrency safety (Option A)', () => {
             destinationType: 'WALLET',
             recipientUsername: recipient.username,
             amount: 6_000,
+            pin: '1234',
           })
           .then((res) => ({ status: res.status, body: res.body }))
           .catch((err) => ({
@@ -154,6 +177,7 @@ describe('Concurrency safety (Option A)', () => {
             destinationType: 'WALLET',
             recipientUsername: job.recipient,
             amount: 6_000,
+            pin: '1234',
           })
           .then((res) => ({ status: res.status }))
           .catch((err) => ({

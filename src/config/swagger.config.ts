@@ -26,9 +26,11 @@ export function setupSwagger(app: INestApplication): void {
         '',
         '## Safety',
         '- Amounts are integer **kobo**.',
-        '- `POST /transfers` and `POST /withdrawals` require `Idempotency-Key` (UUID).',
-        '- Debits use `FOR UPDATE` + fresh SUM (Option A). P2P locks both wallets by ascending id.',
+        '- Create a **transaction PIN** via `POST /auth/pin` before any funding or withdrawal.',
+        '- `POST /transfers` and `POST /withdrawals` require body field `pin` (4 digits) and header `Idempotency-Key` (UUID v4).',
+        '- Debits use `FOR UPDATE` + fresh SUM. P2P locks both wallets by ascending id.',
         '- Flutterwave webhook: verify → store event → enqueue; money only in workers.',
+        '- Login / PIN: 3 failed attempts lock the account for 5 minutes (separate counters).',
       ].join('\n'),
     )
     .setVersion('0.1.0')
@@ -39,15 +41,6 @@ export function setupSwagger(app: INestApplication): void {
         bearerFormat: 'JWT',
       },
       'access-token',
-    )
-    .addApiKey(
-      {
-        type: 'apiKey',
-        in: 'header',
-        name: 'Idempotency-Key',
-        description: 'Client-supplied UUID for POST /transfers and POST /withdrawals',
-      },
-      'idempotency-key',
     )
     .build();
 

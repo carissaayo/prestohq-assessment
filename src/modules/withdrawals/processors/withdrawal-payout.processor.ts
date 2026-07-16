@@ -25,8 +25,16 @@ export class WithdrawalPayoutProcessor extends WorkerHost {
 
   async process(job: Job<WithdrawalJobData>): Promise<void> {
     if (job.name !== WITHDRAWAL_PAYOUT_JOB) return;
+    this.log.action('withdrawal.payout job started', {
+      jobId: job.id,
+      withdrawalId: job.data.withdrawalId,
+    });
     try {
       await this.payoutService.processPayout(job.data.withdrawalId);
+      this.log.action('withdrawal.payout job finished', {
+        jobId: job.id,
+        withdrawalId: job.data.withdrawalId,
+      });
     } catch (error) {
       this.log.fail('withdrawal.payout failed', error, {
         withdrawalId: job.data.withdrawalId,

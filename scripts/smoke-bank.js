@@ -29,12 +29,27 @@ function sleep(ms) {
 async function register(prefix) {
   const email = `${prefix}${Date.now()}@example.com`;
   const username = `${prefix}${Date.now().toString().slice(-6)}`;
+  const password = 'Password1!';
+  const pin = '1234';
   const reg = await req('POST', '/auth/register', {
-    body: { email, username, password: 'Password1!' },
+    body: {
+      email,
+      username,
+      firstName: 'Test',
+      lastName: 'User',
+      password,
+      confirmPassword: password,
+    },
   });
+  await req('POST', '/auth/pin', {
+    token: reg.accessToken,
+    body: { pin, confirmPin: pin, password },
+  });
+  const me = await req('GET', '/auth/me', { token: reg.accessToken });
   return {
     token: reg.accessToken,
-    walletId: reg.data.user.walletId,
+    walletId: me.data.user.walletId,
+    pin,
   };
 }
 
@@ -77,6 +92,7 @@ async function main() {
       accountNumber: '0123456789',
       accountName: 'Test User',
       amount: 3000,
+      pin: user.pin,
     },
   });
   console.log('OK_ACCEPT', ok.data.withdrawal.status);
@@ -96,6 +112,7 @@ async function main() {
       accountNumber: '0123456000',
       accountName: 'Fail Init',
       amount: 2000,
+      pin: user.pin,
     },
   });
   const failInitFinal = await waitStatus(
@@ -117,6 +134,7 @@ async function main() {
       accountNumber: '0123456999',
       accountName: 'Fail Settle',
       amount: 1500,
+      pin: user.pin,
     },
   });
   const failSettleFinal = await waitStatus(

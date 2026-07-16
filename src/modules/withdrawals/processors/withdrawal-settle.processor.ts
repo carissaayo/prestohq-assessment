@@ -25,8 +25,16 @@ export class WithdrawalSettleProcessor extends WorkerHost {
 
   async process(job: Job<WithdrawalJobData>): Promise<void> {
     if (job.name !== WITHDRAWAL_SETTLE_JOB) return;
+    this.log.action('withdrawal.settle job started', {
+      jobId: job.id,
+      withdrawalId: job.data.withdrawalId,
+    });
     try {
       await this.settleService.processSettle(job.data.withdrawalId);
+      this.log.action('withdrawal.settle job finished', {
+        jobId: job.id,
+        withdrawalId: job.data.withdrawalId,
+      });
     } catch (error) {
       this.log.fail('withdrawal.settle failed', error, {
         withdrawalId: job.data.withdrawalId,

@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "users" ADD COLUMN "firstName" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "users" ADD COLUMN "lastName" TEXT NOT NULL DEFAULT '';

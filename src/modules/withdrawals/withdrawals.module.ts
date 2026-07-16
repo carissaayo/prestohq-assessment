@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 
 import { DatabaseModule } from '../../database/database.module';
-import { TransfersModule } from '../transfers/transfers.module';
+import { AuthModule } from '../auth/auth.module';
+import { PaymentProvidersModule } from '../payment-providers/payment-providers.module';
 import { WalletsModule } from '../wallets/wallets.module';
 import { WithdrawalsController } from './controllers/withdrawals.controller';
 import { WithdrawalPayoutProcessor } from './processors/withdrawal-payout.processor';
@@ -13,7 +14,7 @@ import { WithdrawalSettleService } from './services/withdrawal-settle.service';
 import { WithdrawalsService } from './services/withdrawals.service';
 
 @Module({
-  imports: [DatabaseModule, WalletsModule, TransfersModule],
+  imports: [DatabaseModule, WalletsModule, PaymentProvidersModule, AuthModule],
   controllers: [WithdrawalsController],
   providers: [
     WithdrawalsService,

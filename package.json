@@ -2,7 +2,7 @@
   "name": "wallet-api",
   "private": true,
   "version": "0.1.0",
-  "description": "Wallet & Payments API (NestJS take-home)",
+  "description": "Wallet & Payments API",
   "license": "MIT",
   "scripts": {
     "build": "nest build",

@@ -1,4 +1,4 @@
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, RequestMethod } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { Reflector } from '@nestjs/core';
 import type { Application } from 'express';
@@ -6,6 +6,7 @@ import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { TransformResponseInterceptor } from './common/interceptors/transform-response.interceptor';
 import { isSwaggerEnabled, setupSwagger } from './config/swagger.config';
 import { AppLogger } from './core/logger';
@@ -13,7 +14,9 @@ import { AppLogger } from './core/logger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api/v1', {
+    exclude: [{ path: 'funding/callback', method: RequestMethod.GET }],
+  });
   app.use(
     helmet(
       isSwaggerEnabled()
@@ -37,6 +40,7 @@ async function bootstrap() {
 
   app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalInterceptors(
+    new LoggingInterceptor(app.get(AppLogger)),
     new TransformResponseInterceptor(app.get(Reflector)),
   );
   setupSwagger(app);

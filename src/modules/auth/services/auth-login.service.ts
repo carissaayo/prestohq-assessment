@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
 
 import { customError } from '../../../common/exceptions/custom-error';
 import type { ServiceResponseData } from '../../../common/handlers/response-handler';
@@ -7,6 +6,7 @@ import { AppLogger, ContextLogger } from '../../../core/logger';
 import { UserRepository } from '../../../database/repositories/user.repository';
 import { WalletRepository } from '../../../database/repositories/wallet.repository';
 import { LoginDto } from '../dto/login.dto';
+import { AuthCredentialService } from './auth-credential.service';
 import { AuthTokenService } from './auth-token.service';
 
 @Injectable()
@@ -17,6 +17,7 @@ export class AuthLoginService {
     private readonly users: UserRepository,
     private readonly wallets: WalletRepository,
     private readonly tokens: AuthTokenService,
+    private readonly credentials: AuthCredentialService,
     appLogger: AppLogger,
   ) {
     this.log = appLogger.createContext(AuthLoginService.name);
@@ -27,13 +28,14 @@ export class AuthLoginService {
     const user = await this.users.findByEmail(email);
 
     if (!user) {
-      throw customError.unauthorized('Invalid email or password');
+      throw customError.unauthorized('Invalid credentials');
     }
 
-    const valid = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!valid) {
-      throw customError.unauthorized('Invalid email or password');
-    }
+    await this.credentials.verifyPasswordOrThrow(
+      user,
+      dto.password,
+      'Invalid credentials',
+    );
 
     const wallet = await this.wallets.findByUserId(user.id);
     if (!wallet) {
@@ -49,7 +51,10 @@ export class AuthLoginService {
         id: user.id,
         email: user.email,
         username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
         walletId: wallet.id,
+        hasPin: Boolean(user.pinHash),
       },
     };
   }

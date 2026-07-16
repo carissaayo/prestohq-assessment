@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   Get,
-  Headers,
   Param,
   Post,
   Req,
@@ -11,9 +10,9 @@ import {
   ApiBearerAuth,
   ApiHeader,
   ApiOperation,
-  ApiSecurity,
   ApiTags,
 } from '@nestjs/swagger';
+import type { Request } from 'express';
 
 import {
   CurrentUser,
@@ -30,21 +29,27 @@ export class TransfersController {
   constructor(private readonly transfers: TransfersService) {}
 
   @Post()
-  @ApiSecurity('idempotency-key')
   @ApiHeader({
     name: 'Idempotency-Key',
     required: true,
-    description: 'Client-supplied UUID v4',
+    description: 'Client-supplied UUID v4 (new key per distinct request)',
+    schema: {
+      type: 'string',
+      format: 'uuid',
+      example: '99e643eb-53f9-441f-9f44-73fc528328e4',
+    },
   })
   @ApiOperation({
     summary: 'Fund wallet via Flutterwave (Transfer = credit/funding)',
+    description:
+      'Requires a transaction PIN in the body (`pin`, 4 digits). Create one with `POST /auth/pin` first. Also requires `Idempotency-Key` header (UUID v4). `pin` is not part of the idempotency hash.',
   })
   create(
     @CurrentUser() user: JwtPayloadUser,
     @Body() dto: CreateTransferDto,
-    @Headers('idempotency-key') idempotencyKeyHeader?: string,
+    @Req() req: Request,
   ) {
-    const idempotencyKey = requireIdempotencyKey(idempotencyKeyHeader);
+    const idempotencyKey = requireIdempotencyKey(req.headers['idempotency-key']);
     return this.transfers.create(user, dto, idempotencyKey);
   }
 

@@ -10,6 +10,7 @@ import {
   type JwtPayloadUser,
 } from '../../../core/security/decorators/current-user.decorator';
 import { Public } from '../../../core/security/decorators/public.decorator';
+import { CreatePinDto } from '../dto/create-pin.dto';
 import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
 import { AuthService } from '../services/auth.service';
@@ -32,6 +33,20 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with email and password' })
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto);
+  }
+
+  @Post('pin')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Create transaction PIN',
+    description:
+      'Required before funding (`POST /transfers`) or withdrawing (`POST /withdrawals`). Body: `pin`, `confirmPin` (must match), and account `password`.',
+  })
+  createPin(
+    @CurrentUser() user: JwtPayloadUser,
+    @Body() dto: CreatePinDto,
+  ) {
+    return this.auth.createPin(user, dto);
   }
 
   @Get('me')

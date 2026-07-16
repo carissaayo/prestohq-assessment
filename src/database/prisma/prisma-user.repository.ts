@@ -3,10 +3,10 @@ import type { User as PrismaUser } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import {
-  CreateUserWithWalletData,
+  CreateUserData,
+  CreateUserWithWalletResult,
   UserEntity,
   UserRepository,
-  UserWithWalletEntity,
 } from '../repositories/user.repository';
 
 @Injectable()
@@ -31,34 +31,91 @@ export class PrismaUserRepository extends UserRepository {
   }
 
   async createWithWallet(
-    data: CreateUserWithWalletData,
-  ): Promise<UserWithWalletEntity> {
-    const result = await this.prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          email: data.email,
-          username: data.username,
-          passwordHash: data.passwordHash,
-          wallet: {
-            create: {
-              currency: data.currency ?? 'NGN',
-            },
+    data: CreateUserData,
+  ): Promise<CreateUserWithWalletResult> {
+    const user = await this.prisma.user.create({
+      data: {
+        email: data.email,
+        username: data.username,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        passwordHash: data.passwordHash,
+        wallet: {
+          create: {
+            currency: data.currency ?? 'NGN',
           },
         },
-        include: { wallet: true },
-      });
-
-      if (!user.wallet) {
-        throw new Error('Wallet was not created with user');
-      }
-
-      return { user, walletId: user.wallet.id };
+      },
+      include: { wallet: true },
     });
 
+    if (!user.wallet) {
+      throw new Error('Wallet was not created with user');
+    }
+
     return {
-      user: this.toEntity(result.user),
-      walletId: result.walletId,
+      user: this.toEntity(user),
+      walletId: user.wallet.id,
     };
+  }
+
+  async recordPasswordFailure(
+    id: string,
+    attempts: number,
+    lockedUntil: Date | null,
+  ): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        passwordTryCount: attempts,
+        passwordLockedUntil: lockedUntil,
+      },
+    });
+  }
+
+  async resetPasswordFailures(id: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        passwordTryCount: 0,
+        passwordLockedUntil: null,
+      },
+    });
+  }
+
+  async setPinHash(id: string, pinHash: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        pinHash,
+        pinTryCount: 0,
+        pinLockedUntil: null,
+      },
+    });
+  }
+
+  async recordPinFailure(
+    id: string,
+    attempts: number,
+    lockedUntil: Date | null,
+  ): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        pinTryCount: attempts,
+        pinLockedUntil: lockedUntil,
+      },
+    });
+  }
+
+  async resetPinFailures(id: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        pinTryCount: 0,
+        pinLockedUntil: null,
+      },
+    });
   }
 
   private toEntity(user: PrismaUser): UserEntity {
@@ -66,7 +123,14 @@ export class PrismaUserRepository extends UserRepository {
       id: user.id,
       email: user.email,
       username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
       passwordHash: user.passwordHash,
+      passwordTryCount: user.passwordTryCount,
+      passwordLockedUntil: user.passwordLockedUntil,
+      pinHash: user.pinHash,
+      pinTryCount: user.pinTryCount,
+      pinLockedUntil: user.pinLockedUntil,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

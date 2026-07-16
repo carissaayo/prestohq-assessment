@@ -7,6 +7,7 @@ import { QueueModule } from './core/queue/queue.module';
 import { SecurityModule } from './core/security/security.module';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { PaymentProvidersModule } from './modules/payment-providers/payment-providers.module';
 import { TransfersModule } from './modules/transfers/transfers.module';
 import { WalletsModule } from './modules/wallets/wallets.module';
 import { WithdrawalsModule } from './modules/withdrawals/withdrawals.module';
@@ -21,6 +22,7 @@ import { PrismaModule } from './prisma/prisma.module';
     QueueModule,
     AuthModule,
     WalletsModule,
+    PaymentProvidersModule,
     TransfersModule,
     WithdrawalsModule,
   ],

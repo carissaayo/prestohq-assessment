@@ -28,23 +28,36 @@ function sleep(ms) {
 async function main() {
   const email = `fund${Date.now()}@example.com`;
   const username = `fnd${Date.now().toString().slice(-8)}`;
+  const password = 'Password1!';
+  const pin = '1234';
   const reg = await req('POST', '/auth/register', {
-    body: { email, username, password: 'Password1!' },
+    body: {
+      email,
+      username,
+      firstName: 'Test',
+      lastName: 'User',
+      password,
+      confirmPassword: password,
+    },
   });
   const token = reg.accessToken;
+  await req('POST', '/auth/pin', {
+    token,
+    body: { pin, confirmPin: pin, password },
+  });
   const key = randomUUID();
 
   const created = await req('POST', '/transfers', {
     token,
     headers: { 'Idempotency-Key': key },
-    body: { amount: 5000 },
+    body: { amount: 5000, pin },
   });
   console.log('CREATED', created.data.transfer.status, created.data.transfer.checkoutUrl?.slice(0, 40));
 
   const replay = await req('POST', '/transfers', {
     token,
     headers: { 'Idempotency-Key': key },
-    body: { amount: 5000 },
+    body: { amount: 5000, pin },
   });
   console.log('REPLAY_SAME_ID', replay.data.transfer.id === created.data.transfer.id);
 
@@ -52,7 +65,7 @@ async function main() {
     await req('POST', '/transfers', {
       token,
       headers: { 'Idempotency-Key': key },
-      body: { amount: 6000 },
+      body: { amount: 6000, pin },
     });
     console.log('CONFLICT_UNEXPECTED');
   } catch (e) {

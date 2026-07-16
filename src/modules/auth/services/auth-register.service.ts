@@ -5,10 +5,9 @@ import { customError } from '../../../common/exceptions/custom-error';
 import type { ServiceResponseData } from '../../../common/handlers/response-handler';
 import { AppLogger, ContextLogger } from '../../../core/logger';
 import { UserRepository } from '../../../database/repositories/user.repository';
+import { BCRYPT_ROUNDS } from '../auth.constants';
 import { RegisterDto } from '../dto/register.dto';
 import { AuthTokenService } from './auth-token.service';
-
-const BCRYPT_ROUNDS = 12;
 
 @Injectable()
 export class AuthRegisterService {
@@ -23,8 +22,18 @@ export class AuthRegisterService {
   }
 
   async register(dto: RegisterDto): Promise<ServiceResponseData> {
+    if (dto.password !== dto.confirmPassword) {
+      throw customError.badRequest('password and confirmPassword do not match');
+    }
+
     const email = dto.email.trim().toLowerCase();
     const username = dto.username.trim().toLowerCase();
+    const firstName = dto.firstName.trim();
+    const lastName = dto.lastName.trim();
+
+    if (!firstName || !lastName) {
+      throw customError.badRequest('firstName and lastName are required');
+    }
 
     if (await this.users.findByEmail(email)) {
       throw customError.conflict('Email is already registered');
@@ -38,6 +47,8 @@ export class AuthRegisterService {
     const created = await this.users.createWithWallet({
       email,
       username,
+      firstName,
+      lastName,
       passwordHash,
     });
 
@@ -55,7 +66,8 @@ export class AuthRegisterService {
         id: created.user.id,
         email: created.user.email,
         username: created.user.username,
-        walletId: created.walletId,
+        firstName: created.user.firstName,
+        lastName: created.user.lastName,
       },
     };
   }

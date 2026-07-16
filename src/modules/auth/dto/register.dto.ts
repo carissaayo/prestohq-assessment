@@ -21,9 +21,27 @@ export class RegisterDto {
   })
   username!: string;
 
+  @ApiProperty({ example: 'Ada', minLength: 1, maxLength: 50 })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(50)
+  firstName!: string;
+
+  @ApiProperty({ example: 'Okeke', minLength: 1, maxLength: 50 })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(50)
+  lastName!: string;
+
   @ApiProperty({ example: 'Password1!', minLength: 8 })
   @IsString()
   @MinLength(8)
   @MaxLength(128)
   password!: string;
+
+  @ApiProperty({ example: 'Password1!', minLength: 8 })
+  @IsString()
+  @MinLength(8)
+  @MaxLength(128)
+  confirmPassword!: string;
 }

@@ -156,6 +156,14 @@ export class PrismaWithdrawalRepository extends WithdrawalRepository {
     return row ? this.toEntity(row) : null;
   }
 
+  async listByUserId(userId: string): Promise<WithdrawalEntity[]> {
+    const rows = await this.prisma.withdrawal.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+    return rows.map((row) => this.toEntity(row));
+  }
+
   async executeBankAccept(
     data: ExecuteBankWithdrawalData,
   ): Promise<ExecuteBankWithdrawalResult> {

@@ -28,8 +28,17 @@ export class TransferCompleteProcessor extends WorkerHost {
       return;
     }
 
+    this.log.action('transfer.complete job started', {
+      jobId: job.id,
+      webhookEventId: job.data.webhookEventId,
+    });
+
     try {
       await this.completeService.completeFromWebhook(job.data.webhookEventId);
+      this.log.action('transfer.complete job finished', {
+        jobId: job.id,
+        webhookEventId: job.data.webhookEventId,
+      });
     } catch (error) {
       this.log.fail('transfer.complete failed', error, {
         webhookEventId: job.data.webhookEventId,
@@ -38,3 +47,4 @@ export class TransferCompleteProcessor extends WorkerHost {
     }
   }
 }
+

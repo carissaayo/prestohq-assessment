@@ -82,6 +82,8 @@ export abstract class WithdrawalRepository {
     providerReference: string,
   ): Promise<WithdrawalEntity | null>;
 
+  abstract listByUserId(userId: string): Promise<WithdrawalEntity[]>;
+
   /**
    * Atomic P2P: lock wallets (asc id), SUM-check sender, debit+credit journals,
    * create SUCCESSFUL withdrawal — all one DB transaction.

@@ -27,14 +27,31 @@ async function req(method, path, { body, token, headers } = {}) {
 async function register(prefix) {
   const email = `${prefix}${Date.now()}${Math.floor(Math.random() * 1e6)}@example.com`;
   const username = `${prefix}${Date.now().toString().slice(-5)}${Math.floor(Math.random() * 1000)}`;
+  const password = 'Password1!';
+  const pin = '1234';
   const res = await req('POST', '/auth/register', {
-    body: { email, username, password: 'Password1!' },
+    body: {
+      email,
+      username,
+      firstName: 'Test',
+      lastName: 'User',
+      password,
+      confirmPassword: password,
+    },
   });
   if (res.status >= 400) throw new Error(JSON.stringify(res.json));
+  const pinRes = await req('POST', '/auth/pin', {
+    token: res.json.accessToken,
+    body: { pin, confirmPin: pin, password },
+  });
+  if (pinRes.status >= 400) throw new Error(JSON.stringify(pinRes.json));
+  const me = await req('GET', '/auth/me', { token: res.json.accessToken });
+  if (me.status >= 400) throw new Error(JSON.stringify(me.json));
   return {
     token: res.json.accessToken,
-    username: res.json.data.user.username,
-    walletId: res.json.data.user.walletId,
+    username: me.json.data.user.username,
+    walletId: me.json.data.user.walletId,
+    pin,
   };
 }
 
@@ -74,6 +91,7 @@ async function main() {
           destinationType: 'WALLET',
           recipientUsername: recipient.username,
           amount: 6_000,
+          pin: sender.pin,
         },
       }),
     ),
@@ -100,6 +118,7 @@ async function main() {
           destinationType: 'WALLET',
           recipientUsername: b.username,
           amount: 6_000,
+          pin: a.pin,
         },
       }),
     ),
@@ -111,6 +130,7 @@ async function main() {
           destinationType: 'WALLET',
           recipientUsername: a.username,
           amount: 6_000,
+          pin: b.pin,
         },
       }),
     ),

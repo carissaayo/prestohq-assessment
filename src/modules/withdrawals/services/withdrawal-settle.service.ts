@@ -6,7 +6,7 @@ import { WalletLedgerService } from '../../wallets/services/wallet-ledger.servic
 import {
   FLUTTERWAVE_PROVIDER,
   type IFlutterwaveProvider,
-} from '../../transfers/providers/flutterwave.interface';
+} from '../../payment-providers/flutterwave/flutterwave-payment.interface';
 
 @Injectable()
 export class WithdrawalSettleService {

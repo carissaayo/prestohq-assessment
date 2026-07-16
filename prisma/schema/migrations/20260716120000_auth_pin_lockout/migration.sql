@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "users" ADD COLUMN "passwordTryCount" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "users" ADD COLUMN "passwordLockedUntil" TIMESTAMP(3);
+ALTER TABLE "users" ADD COLUMN "pinHash" TEXT;
+ALTER TABLE "users" ADD COLUMN "pinTryCount" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "users" ADD COLUMN "pinLockedUntil" TIMESTAMP(3);

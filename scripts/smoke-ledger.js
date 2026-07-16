@@ -29,10 +29,14 @@ async function main() {
   const reg = await req('POST', '/auth/register', {
     email,
     username,
+    firstName: 'Test',
+    lastName: 'User',
     password: 'Password1!',
+    confirmPassword: 'Password1!',
   });
   const token = reg.accessToken;
-  const walletId = reg.data.user.walletId;
+  const me = await req('GET', '/auth/me', null, token);
+  const walletId = me.data.user.walletId;
 
   const me0 = await req('GET', '/wallets/me', null, token);
   console.log('BAL0', me0.data.wallet.balance);

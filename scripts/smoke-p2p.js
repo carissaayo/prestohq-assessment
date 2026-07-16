@@ -25,13 +25,28 @@ async function req(method, path, { body, token, headers } = {}) {
 async function register(prefix) {
   const email = `${prefix}${Date.now()}@example.com`;
   const username = `${prefix}${Date.now().toString().slice(-6)}`;
+  const password = 'Password1!';
+  const pin = '1234';
   const reg = await req('POST', '/auth/register', {
-    body: { email, username, password: 'Password1!' },
+    body: {
+      email,
+      username,
+      firstName: 'Test',
+      lastName: 'User',
+      password,
+      confirmPassword: password,
+    },
   });
+  await req('POST', '/auth/pin', {
+    token: reg.accessToken,
+    body: { pin, confirmPin: pin, password },
+  });
+  const me = await req('GET', '/auth/me', { token: reg.accessToken });
   return {
     token: reg.accessToken,
-    username: reg.data.user.username,
-    walletId: reg.data.user.walletId,
+    username: me.data.user.username,
+    walletId: me.data.user.walletId,
+    pin,
   };
 }
 
@@ -63,6 +78,7 @@ async function main() {
       destinationType: 'WALLET',
       recipientUsername: b.username,
       amount: 4000,
+      pin: a.pin,
     },
   });
   console.log('WD', wd.data.withdrawal.status, wd.data.withdrawal.id);
@@ -74,6 +90,7 @@ async function main() {
       destinationType: 'WALLET',
       recipientUsername: b.username,
       amount: 4000,
+      pin: a.pin,
     },
   });
   console.log('REPLAY', replay.data.withdrawal.id === wd.data.withdrawal.id);
@@ -86,6 +103,7 @@ async function main() {
         destinationType: 'WALLET',
         recipientUsername: b.username,
         amount: 5000,
+        pin: a.pin,
       },
     });
     console.log('CONFLICT_UNEXPECTED');
@@ -101,6 +119,7 @@ async function main() {
         destinationType: 'WALLET',
         recipientUsername: a.username,
         amount: 100,
+        pin: a.pin,
       },
     });
     console.log('SELF_UNEXPECTED');
@@ -116,6 +135,7 @@ async function main() {
         destinationType: 'WALLET',
         recipientUsername: b.username,
         amount: 999999,
+        pin: a.pin,
       },
     });
     console.log('OVERDRAW_UNEXPECTED');

@@ -7,6 +7,7 @@ import type { Queue } from 'bullmq';
 import { customError } from '../../../common/exceptions/custom-error';
 import type { ServiceResponseData } from '../../../common/handlers/response-handler';
 import { hashRequestBody } from '../../../common/utils/idempotency';
+import { AppLogger, ContextLogger } from '../../../core/logger';
 import { WITHDRAWAL_PAYOUT_QUEUE } from '../../../core/queue/queue.constants';
 import type { JwtPayloadUser } from '../../../core/security/decorators/current-user.decorator';
 import { WalletRepository } from '../../../database/repositories/wallet.repository';
@@ -16,12 +17,17 @@ import { WITHDRAWAL_PAYOUT_JOB } from '../withdrawals.constants';
 
 @Injectable()
 export class WithdrawalBankService {
+  private readonly log: ContextLogger;
+
   constructor(
     private readonly withdrawals: WithdrawalRepository,
     private readonly wallets: WalletRepository,
     @InjectQueue(WITHDRAWAL_PAYOUT_QUEUE)
     private readonly payoutQueue: Queue,
-  ) {}
+    appLogger: AppLogger,
+  ) {
+    this.log = appLogger.createContext(WithdrawalBankService.name);
+  }
 
   async create(
     actor: JwtPayloadUser,
@@ -33,9 +39,15 @@ export class WithdrawalBankService {
       throw customError.badRequest('Only NGN is supported');
     }
 
-    const bankCode = dto.bankCode!.trim();
-    const accountNumber = dto.accountNumber!.trim();
-    const accountName = dto.accountName!.trim();
+    if (!dto.bankCode?.trim() || !dto.accountNumber?.trim() || !dto.accountName?.trim()) {
+      throw customError.badRequest(
+        'bankCode, accountNumber, and accountName are required for BANK withdrawals',
+      );
+    }
+
+    const bankCode = dto.bankCode.trim();
+    const accountNumber = dto.accountNumber.trim();
+    const accountName = dto.accountName.trim();
 
     const bodyHash = hashRequestBody({
       destinationType: 'BANK',
@@ -80,6 +92,17 @@ export class WithdrawalBankService {
           backoff: { type: 'exponential', delay: 2000 },
         },
       );
+      this.log.action('Bank withdrawal accepted and queued', {
+        userId: actor.userId,
+        withdrawalId: result.withdrawal.id,
+        amount: dto.amount,
+        providerReference,
+      });
+    } else {
+      this.log.action('Bank withdrawal idempotent replay', {
+        userId: actor.userId,
+        withdrawalId: result.withdrawal.id,
+      });
     }
 
     return {

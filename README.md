@@ -1,160 +1,148 @@
-# Wallet & Payments API
+# Wallet API
 
-NestJS API for wallet funding and payouts: Flutterwave deposits, peer-to-peer transfers, and bank withdrawals. Money is tracked in an append-only journal; balances are always derived from successful ledger rows.
+NestJS service for NGN wallet balances, Flutterwave funding, peer-to-peer transfers, and bank payouts.
 
-> **Transfer** means funding (Flutterwave credit). **Withdrawal** covers P2P and bank outflows.
+Balances are never stored as a mutable cache. The ledger is append-only; available balance is always:
 
-## Features
-
-- Register / login (JWT, bcrypt password hashing)
-- Fund wallet via Flutterwave (webhook + async settlement)
-- Withdraw to another wallet (P2P) or Nigerian bank account
-- Client `Idempotency-Key` on money-moving POSTs
-- Concurrent-safe debits (`FOR UPDATE` + fresh balance aggregation)
-- Compensating **REVERSAL** credit when a bank payout fails
-- OpenAPI / Swagger UI
-
-## Naming
+`SUM(SUCCESSFUL CREDIT) − SUM(SUCCESSFUL DEBIT)` (amounts in **kobo**).
 
 | Term | Meaning |
 |------|---------|
-| **Transfer** | Fund wallet via Flutterwave (credit / inflow) |
-| **Withdrawal** | Send money out — `WALLET` (P2P) or `BANK` |
-| **WalletTransaction** | Append-only journal; source of truth for balances |
-| **Balance** | `SUM(SUCCESSFUL CREDIT) − SUM(SUCCESSFUL DEBIT)` — computed on read |
-| **Amounts** | Integer **kobo** (minor units), never floats |
+| **Transfer** | Inflow — fund a wallet via Flutterwave |
+| **Withdrawal** | Outflow — `WALLET` (P2P) or `BANK` (Flutterwave payout) |
+| **WalletTransaction** | Journal row (`CREDIT` / `DEBIT` / `REVERSAL`) |
 
-## Quick start
+## Requirements
+
+- Node.js 20+
+- Docker (Postgres + Redis for local infra)
+- Flutterwave credentials when `FLUTTERWAVE_MOCK=false`
+
+## Run
 
 ```bash
 cp .env.example .env
-
-# Postgres (:5433) + Redis (:6380)
 npm run docker:infra
-
 npm install
 npx prisma migrate deploy
-
 npm run dev
 ```
 
-| | URL |
-|--|-----|
-| Health | `GET http://localhost:3010/api/v1/health` |
-| Swagger | `http://localhost:3010/api/docs` |
+| | |
+|--|--|
+| API | `http://localhost:3010` |
+| Health | `GET /api/v1/health` |
+| OpenAPI | `http://localhost:3010/api/docs` (non-production by default) |
 
-Default local ports: API **3010**, Postgres **5433**, Redis **6380**.
+Default ports: API **3010**, Postgres **5433**, Redis **6380**.
 
-## Environment
-
-| Variable | Purpose |
-|----------|---------|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `REDIS_HOST` / `REDIS_PORT` | BullMQ / job workers |
-| `JWT_SECRET` / `JWT_EXPIRES_IN` | Auth tokens — use a strong secret in production |
-| `FLUTTERWAVE_MOCK` | `true` for local mock provider (no real FLW calls) |
-| `FLUTTERWAVE_SECRET_KEY` | Flutterwave secret when mock is off |
-| `FLUTTERWAVE_PUBLIC_KEY` | Flutterwave public key |
-| `FLUTTERWAVE_WEBHOOK_SECRET` | Must match dashboard hash (`verif-hash` header) |
-| `FLUTTERWAVE_REDIRECT_URL` | Checkout return URL |
-| `SWAGGER_ENABLED` | Set `true` to expose `/api/docs` in production |
-
-See `.env.example` for a full template.
-
-## API overview
-
-| Method | Path | Notes |
-|--------|------|--------|
-| `POST` | `/api/v1/auth/register` | Creates user + empty wallet |
-| `POST` | `/api/v1/auth/login` | Returns JWT |
-| `GET` | `/api/v1/auth/me` | Current user |
-| `GET` | `/api/v1/wallets/me` | Wallet + live balance |
-| `GET` | `/api/v1/wallets/me/transactions` | Journal (paginated) |
-| `POST` | `/api/v1/transfers` | Fund via Flutterwave — requires `Idempotency-Key` |
-| `GET` | `/api/v1/transfers/:id` | Funding status |
-| `POST` | `/api/v1/withdrawals` | P2P or bank — requires `Idempotency-Key` |
-| `GET` | `/api/v1/withdrawals/:id` | Withdrawal status |
-| `POST` | `/api/v1/webhooks/flutterwave` | Provider webhook |
-
-Interactive docs: [http://localhost:3010/api/docs](http://localhost:3010/api/docs).
-
-## Flows
-
-### Auth
-
-`POST /auth/register` creates a user and wallet in one transaction. Passwords are hashed with **bcrypt** (cost 12). Login issues a JWT bearer token.
-
-### Fund (Transfer)
-
-1. `POST /transfers` with `Idempotency-Key` creates a Transfer and a **PENDING** credit (does not affect balance).
-2. Client completes Flutterwave checkout.
-3. Webhook → persist event → BullMQ `transfer.complete` → mark credit **SUCCESSFUL**.
-
-### P2P withdrawal
-
-`POST /withdrawals` with `destinationType: WALLET`. One database transaction locks both wallets (by ascending id), checks sender balance via fresh `SUM`, writes sender DEBIT + recipient CREDIT, and marks the Withdrawal successful.
-
-### Bank withdrawal
-
-1. Atomic DEBIT + Withdrawal `PROCESSING`, then enqueue `withdrawal.payout`.
-2. Worker initiates Flutterwave transfer; settle job finalizes success or failure.
-3. On failure: compensating **CREDIT `REVERSAL`** (original debit is never rewritten or deleted).
-
-With `FLUTTERWAVE_MOCK=true`: account numbers ending in `000` fail initiate; ending in `999` fail settle (exercises reversal).
-
-## Webhook setup
-
-`POST /api/v1/webhooks/flutterwave`
-
-1. Point Flutterwave’s webhook URL at your public host + `/api/v1/webhooks/flutterwave`.
-2. Set the dashboard secret hash to match `FLUTTERWAVE_WEBHOOK_SECRET`.
-3. The handler verifies `verif-hash`, stores a unique `WebhookEvent`, enqueues a worker, and returns **200**. Ledger updates happen only in workers—not in the HTTP handler.
-
-## Idempotency
-
-`Idempotency-Key` (UUID) is required on `POST /transfers` and `POST /withdrawals`, scoped per user.
-
-Clients own retry semantics: the same key marks a retry of the same intent (e.g. after a timeout). The server cannot reliably infer that from body fingerprints alone—same convention as Stripe’s `Idempotency-Key`.
-
-| Condition | Result |
-|-----------|--------|
-| Same key + same body hash | Replay prior response (no new side effects) |
-| Same key + different body | `409 Conflict` |
-
-Provider webhooks are idempotent separately via unique event ids.
-
-## Concurrency & balance safety
-
-Balances are never trusted from a cached column. Every debit:
-
-1. Starts a transaction
-2. Locks the wallet row with `SELECT … FOR UPDATE` (P2P locks both wallets, ascending id order, to avoid deadlocks)
-3. Recomputes available balance with a fresh `SUM` of successful journal rows
-4. Inserts the DEBIT (and P2P CREDIT) only if funds are sufficient — otherwise rolls back with `422`
-
-## Concurrency test
-
-```bash
-npm run docker:infra
-npm run test:concurrency
-```
-
-Asserts that exactly one of twenty concurrent P2P withdrawals of **6000** kobo succeeds against a **10000** balance (others `422`), and that bidirectional stress keeps balances non-negative with a conserved system total.
-
-Against a running API: `API_BASE=http://127.0.0.1:3010/api/v1 node scripts/concurrency-test.js`
-
-## Design notes
-
-- Currency is **NGN** / amounts in **kobo**.
-- P2P money movement is synchronous (single Postgres transaction).
-- Bank payouts are asynchronous; failed payouts are corrected with a REVERSAL credit.
-- Set `FLUTTERWAVE_MOCK=false` and real keys for production funding and payouts.
-
-## Production / Docker
+Production process:
 
 ```bash
 npm run build
 NODE_ENV=production node dist/main
 ```
 
-Or build the included `Dockerfile` (runs migrations then starts the API). Provide managed Postgres + Redis, a strong `JWT_SECRET`, Flutterwave credentials, and `FLUTTERWAVE_MOCK=false`. Point Flutterwave webhooks at `https://<host>/api/v1/webhooks/flutterwave`. Set `SWAGGER_ENABLED=true` if you want docs exposed publicly.
+Or use the included `Dockerfile` (migrate then start). Provide managed Postgres, Redis, a strong `JWT_SECRET`, and live Flutterwave keys with `FLUTTERWAVE_MOCK=false`.
+
+## Environment
+
+| Variable | Purpose |
+|----------|---------|
+| `PORT` | HTTP port (default `3010`) |
+| `DATABASE_URL` | PostgreSQL |
+| `REDIS_HOST` / `REDIS_PORT` / `REDIS_URL` | BullMQ |
+| `REDIS_KEY_PREFIX` | Redis key namespace |
+| `JWT_SECRET` / `JWT_EXPIRES_IN` | Access tokens |
+| `FLUTTERWAVE_MOCK` | `true` = in-process mock provider; `false` = live Flutterwave HTTP |
+| `FLUTTERWAVE_SECRET_KEY` | Secret key (required when mock is off) |
+| `FLUTTERWAVE_PUBLIC_KEY` | Public key |
+| `FLUTTERWAVE_WEBHOOK_SECRET` | Must match dashboard secret (`verif-hash` header) |
+| `FLUTTERWAVE_REDIRECT_URL` | Browser return URL after checkout (e.g. `https://<host>/funding/callback`) |
+| `SWAGGER_ENABLED` | Force OpenAPI on/off (`true` to expose in production) |
+
+Template: `.env.example`.
+
+## HTTP API
+
+Base path: `/api/v1` (except the funding return page).
+
+| Method | Path | Auth | Notes |
+|--------|------|------|-------|
+| `POST` | `/auth/register` | — | User + empty wallet; `confirmPassword` must match |
+| `POST` | `/auth/login` | — | JWT; failed password attempts lock for 5 minutes after 3 tries |
+| `POST` | `/auth/pin` | Bearer | Set 4-digit transaction PIN (requires password) |
+| `GET` | `/auth/me` | Bearer | Current user |
+| `GET` | `/wallets/me` | Bearer | Wallet + live balance |
+| `GET` | `/wallets/me/transactions` | Bearer | Journal (newest first) |
+| `POST` | `/transfers` | Bearer | Start Flutterwave funding; body includes `pin`; header `Idempotency-Key` |
+| `GET` | `/transfers/:id` | Bearer | Funding transfer |
+| `POST` | `/withdrawals` | Bearer | P2P or bank; body includes `pin`; header `Idempotency-Key` |
+| `GET` | `/withdrawals` | Bearer | List own withdrawals |
+| `GET` | `/withdrawals/:id` | Bearer | One withdrawal |
+| `POST` | `/webhooks/flutterwave` | `verif-hash` | Provider webhook |
+| `GET` | `/funding/callback` | — | Browser landing after checkout (outside `/api/v1`; does not settle funds) |
+
+Money-moving POSTs require a configured transaction PIN. Wrong PIN: 3 failures → 5 minute lock.
+
+### Withdrawal body
+
+- `destinationType: WALLET` — `recipientUsername`, `amount`, `pin`
+- `destinationType: BANK` — `bankCode`, `accountNumber`, `accountName`, `amount`, `pin` (no username)
+
+## Behaviour
+
+### Funding (transfer)
+
+1. `POST /transfers` creates a transfer (`PENDING`) and a **PENDING** credit (excluded from balance).
+2. Client pays on Flutterwave checkout.
+3. Flutterwave calls `POST /webhooks/flutterwave` with `verif-hash`.
+4. API verifies the hash, stores a `WebhookEvent` keyed by Flutterwave `data.id`, enqueues BullMQ `transfer.complete`, returns `200`.
+5. Worker re-verifies the charge with Flutterwave, completes the credit to **SUCCESSFUL**, marks the transfer **SUCCESSFUL**.
+
+Redirect to `/funding/callback` is UX only. Settlement is webhook + worker.
+
+### P2P withdrawal
+
+Synchronous. One Postgres transaction: lock both wallets in ascending id order, recompute sender balance, write DEBIT + CREDIT (`SUCCESSFUL`), mark withdrawal **SUCCESSFUL**.
+
+### Bank withdrawal
+
+1. Accept request: lock wallet, DEBIT **SUCCESSFUL**, withdrawal **PROCESSING**, enqueue `withdrawal.payout`.
+2. Payout worker calls Flutterwave; may enqueue `withdrawal.settle` to poll status.
+3. On provider failure: **REVERSAL** credit (compensating journal row); withdrawal **REVERSED**. Original debit rows are never deleted.
+
+### Idempotency
+
+`Idempotency-Key` (UUID v4) required on `POST /transfers` and `POST /withdrawals`, scoped per user. PIN is excluded from the body hash.
+
+| | |
+|--|--|
+| Same key + same body | Replay prior result |
+| Same key + different body | `409 Conflict` |
+
+Webhooks are idempotent on `(provider, providerEventId)`.
+
+### Concurrency
+
+Debits take `SELECT … FOR UPDATE` on wallet row(s), then a fresh successful-journal `SUM`, then insert. Insufficient funds → `422` and rollback.
+
+```bash
+npm run test:concurrency
+```
+
+## Flutterwave
+
+Dashboard:
+
+1. Webhook URL: `https://<public-host>/api/v1/webhooks/flutterwave`
+2. Secret hash = `FLUTTERWAVE_WEBHOOK_SECRET`
+3. Redirect URL = `FLUTTERWAVE_REDIRECT_URL` (must be reachable by the payer’s browser)
+
+For local tunnels (e.g. ngrok), use the tunnel HTTPS origin for both webhook and redirect, and keep the tunnel process running while testing live charges.
+
+With `FLUTTERWAVE_MOCK=true`, no live Flutterwave HTTP is used; webhook signature expects `verif-hash: mock-webhook-secret`. Mock bank account suffixes: `000` fails initiate, `999` fails settle.
+
+## Stack
+
+NestJS 11, Prisma, PostgreSQL, Redis, BullMQ, JWT (HS256), bcrypt (cost 12), Helmet, class-validator.

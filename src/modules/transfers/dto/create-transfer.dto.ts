@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, Matches, Max, Min } from 'class-validator';
 
 export class CreateTransferDto {
   @ApiProperty({
@@ -18,4 +18,15 @@ export class CreateTransferDto {
   @IsOptional()
   @IsString()
   currency?: string;
+
+  @ApiProperty({
+    description:
+      '4-digit transaction PIN (required). Create via POST /auth/pin. Not included in idempotency hash.',
+    example: '1234',
+    minLength: 4,
+    maxLength: 4,
+  })
+  @IsString()
+  @Matches(/^\d{4}$/, { message: 'pin must be exactly 4 digits' })
+  pin!: string;
 }

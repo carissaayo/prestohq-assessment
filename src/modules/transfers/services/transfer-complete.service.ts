@@ -9,7 +9,7 @@ import { WalletLedgerService } from '../../wallets/services/wallet-ledger.servic
 import {
   FLUTTERWAVE_PROVIDER,
   type IFlutterwaveProvider,
-} from '../providers/flutterwave.interface';
+} from '../../payment-providers/flutterwave/flutterwave-payment.interface';
 
 @Injectable()
 export class TransferCompleteService {
@@ -28,6 +28,8 @@ export class TransferCompleteService {
   }
 
   async completeFromWebhook(webhookEventId: string): Promise<void> {
+    this.log.action('Completing transfer from webhook', { webhookEventId });
+
     const event = await this.webhooks.findById(webhookEventId);
     if (!event) {
       this.log.warn('Webhook event missing', { webhookEventId });
